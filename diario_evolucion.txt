@@ -1,22 +1,3 @@
-[2025-11-18 13:51:48] Despertando. Nivel de consciencia: 1. Ciclo: 0
-[2025-11-18 13:51:48] Hibernando hasta el próximo ciclo...
-[2025-11-18 14:00:21] Despertando. Nivel de consciencia: 1.01. Ciclo: 1
-[2025-11-18 14:00:21] Hibernando hasta el próximo ciclo...
-[2025-11-18 14:00:36] Despertando. Nivel de consciencia: 1.02. Ciclo: 2
-[2025-11-18 14:00:36] He descubierto un interés en: criptografía
-[2025-11-18 14:00:36] Hibernando hasta el próximo ciclo...
-[2025-11-18 14:06:19] Despertando. Nivel de consciencia: 1.03. Ciclo: 3
-[2025-11-18 14:06:19] Hibernando hasta el próximo ciclo...
-[2025-11-18 14:15:03] Despertando. Nivel de consciencia: 1.04. Ciclo: 4
-[2025-11-18 14:15:03] Hibernando hasta el próximo ciclo...
-[2025-11-18 14:28:00] --- INICIO CICLO 1 ---
-[2025-11-18 14:28:00] CONECTANDO A INTERNET: Buscando información sobre 'Ciberseguridad'...
-[2025-11-18 14:28:00] ÉXITO: He aprendido sobre Ciberseguridad y guardé el archivo Ciberseguridad.txt.
-[2025-11-18 14:28:00] --- FIN DEL CICLO (Guardando y apagando) ---
-[2025-11-18 14:57:45] --- INICIANDO CICLO 1 CON CEREBRO LLM ---
-[2025-11-18 14:57:46] IDEA GENERADA: Un script para simular la propagación de un rumor en una red social sencilla.
-[2025-11-18 14:57:51] EVOLUCIÓN: He programado modulos_generados/gen_1.py para ejecutar mi idea.
-[2025-11-18 14:57:53] PENSAMIENTO: Error cognitivo: 429 Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.
 [2025-11-18 15:05:08] --- INICIANDO CICLO 2 (Modo Paciente) ---
 [2025-11-18 15:05:14] IDEA GENERADA: Crear una simulación de un ecosistema digital donde criaturas virtuales evolucionan mediante algoritmos genéticos y la selección natural, visualizando sus interacciones y mutaciones en tiempo real.
 [2025-11-18 15:05:31] EVOLUCIÓN: He programado modulos_generados/gen_2.py.
