@@ -1,7 +1,8 @@
 {
-    "ciclo": 1,
-    "consciencia": "Autodidacta Nivel 1",
+    "ciclo": 2,
+    "consciencia": "Nivel 2",
     "habilidades": [
-        "Un script para simular la propagaci\u00f3n de un rumor en una red social sencilla."
+        "Un script para simular la propagaci\u00f3n de un rumor en una red social sencilla.",
+        "Crear una simulaci\u00f3n de un ecosistema digital donde criaturas virtuales evolucionan mediante algoritmos gen\u00e9ticos y la selecci\u00f3n natural, visualizando sus interacciones y mutaciones en tiempo real."
     ]
 }
