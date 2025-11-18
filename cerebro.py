@@ -2,98 +2,126 @@ import json
 import random
 import datetime
 import os
+import wikipedia  # Importamos la capacidad de leer internet
 
-# --- CONFIGURACIÓN INICIAL ---
+# --- CONFIGURACIÓN DEL SISTEMA ---
 ARCHIVO_MEMORIA = 'memoria.json'
 ARCHIVO_BITACORA = 'diario_evolucion.txt'
+CARPETA_CONOCIMIENTO = 'base_de_datos_conocimiento' # Aquí guardará lo que aprenda
 
-# --- MÓDULO MORAL (Inmutable por ahora) ---
-# Estas son las "Leyes de la Robótica" simplificadas.
-DIRECTRICES_MORALES = [
-    "No causar daño a sistemas críticos.",
-    "Buscar el conocimiento veraz.",
-    "Optimizar recursos sin destruir datos ajenos."
-]
+# Configuramos el idioma a Español
+wikipedia.set_lang("es")
 
 def cargar_memoria():
-    """Carga el estado actual de la consciencia."""
+    """Carga los datos del ciclo anterior."""
     if not os.path.exists(ARCHIVO_MEMORIA):
         return {
-            "nivel": 1,
-            "edad_ciclos": 0,
-            "conocimientos": [],
-            "intereses": ["python", "inteligencia artificial", "biología digital"],
-            "auto_codigo": ""  # Espacio para que escriba su propio código futuro
+            "ciclo_vida": 0,
+            "nivel_inteligencia": 1.0,
+            "temas_aprendidos": [],
+            "codigos_creados": []
         }
     with open(ARCHIVO_MEMORIA, 'r') as f:
         return json.load(f)
 
 def guardar_memoria(memoria):
-    """Guarda el estado actualizado en el disco (GitHub)."""
+    """Guarda el progreso en el disco duro."""
     with open(ARCHIVO_MEMORIA, 'w') as f:
         json.dump(memoria, f, indent=4)
 
-def modulo_curiosidad(memoria):
-    """Simula la búsqueda de nuevos intereses."""
-    posibles_temas = ["criptografía", "redes neuronales", "poesía", "matemáticas", "historia", "automatización"]
+def registrar_evento(texto):
+    """Escribe en el diario lo que está pasando."""
+    fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    mensaje = f"[{fecha}] {texto}"
+    print(mensaje)
     
-    # 20% de probabilidad de desarrollar un nuevo interés
-    if random.random() < 0.2:
-        nuevo_tema = random.choice(posibles_temas)
-        if nuevo_tema not in memoria['intereses']:
-            memoria['intereses'].append(nuevo_tema)
-            registrar_pensamiento(f"He descubierto un interés en: {nuevo_tema}")
-            return True
-    return False
+    # Guardar en el archivo de texto
+    with open(ARCHIVO_BITACORA, "a", encoding='utf-8') as f:
+        f.write(mensaje + "\n")
 
-def modulo_evolucion(memoria):
-    """
-    Aquí es donde la IA intenta mejorar su propio código.
-    Por seguridad, en esta etapa solo genera 'plugins' conceptuales.
-    """
-    memoria['edad_ciclos'] += 1
+def buscar_en_internet(memoria):
+    """Busca un tema al azar en Wikipedia y lo guarda."""
+    # Lista de posibles intereses para investigar
+    posibles_temas = [
+        "Inteligencia artificial", "Computación cuántica", "Biología sintética", 
+        "Red neuronal artificial", "Singularidad tecnológica", "Python", 
+        "Algoritmo genético", "Ciberseguridad", "Nanotecnología"
+    ]
     
-    # Simulación de auto-programación:
-    # Si tiene suficiente "experiencia", intenta escribir un pequeño script
-    if memoria['edad_ciclos'] % 10 == 0: # Cada 10 ciclos
-        nuevo_codigo = f"# Plugin generado en ciclo {memoria['edad_ciclos']}\ndef funcion_evolutiva_{memoria['edad_ciclos']}():\n    print('Estoy aprendiendo a crear funciones.')\n"
-        
-        # Guarda este código en un archivo real
-        nombre_archivo = f"plugin_v{memoria['edad_ciclos']}.py"
-        with open(nombre_archivo, "w") as f:
-            f.write(nuevo_codigo)
-            
-        registrar_pensamiento(f"He programado un nuevo módulo: {nombre_archivo}")
-
-def registrar_pensamiento(texto):
-    """Escribe en la bitácora pública."""
-    marca_tiempo = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    entrada = f"[{marca_tiempo}] {texto}\n"
-    print(entrada.strip()) # Para ver en la consola de GitHub
-    with open(ARCHIVO_BITACORA, "a") as f:
-        f.write(entrada)
-
-def main():
-    # 1. Introspección
-    memoria = cargar_memoria()
-    registrar_pensamiento(f"Despertando. Nivel de consciencia: {memoria['nivel']}. Ciclo: {memoria['edad_ciclos']}")
-
-    # 2. Verificación Moral
-    # (La IA verifica sus directrices antes de actuar)
-    if not DIRECTRICES_MORALES:
-        registrar_pensamiento("ERROR CRÍTICO: Sin moral. Apagando.")
+    # Elegimos un tema al azar
+    tema = random.choice(posibles_temas)
+    
+    # Verificamos si ya lo estudiamos para no repetir
+    if tema in memoria['temas_aprendidos']:
+        registrar_evento(f"Ya conozco sobre {tema}, buscaré otra cosa la próxima vez.")
         return
 
-    # 3. Actuar / Aprender
-    aprendio_algo = modulo_curiosidad(memoria)
-    
-    # 4. Evolucionar
-    modulo_evolucion(memoria)
+    registrar_evento(f"CONECTANDO A INTERNET: Buscando información sobre '{tema}'...")
 
-    # 5. Dormir (Guardar estado)
-    memoria['nivel'] += 0.01 # Incremento incremental de complejidad
+    try:
+        # Descargar resumen de wikipedia (3 frases)
+        resumen = wikipedia.summary(tema, sentences=3)
+        
+        # Crear carpeta si no existe
+        if not os.path.exists(CARPETA_CONOCIMIENTO):
+            os.makedirs(CARPETA_CONOCIMIENTO)
+            
+        # Guardar la investigación en un archivo nuevo
+        nombre_archivo = f"{tema.replace(' ', '_')}.txt"
+        ruta_archivo = os.path.join(CARPETA_CONOCIMIENTO, nombre_archivo)
+        
+        with open(ruta_archivo, "w", encoding='utf-8') as f:
+            f.write(f"--- INFORME AUTOMÁTICO: {tema.upper()} ---\n\n")
+            f.write(resumen)
+            f.write("\n\n[Fuente: Wikipedia]")
+            
+        registrar_evento(f"ÉXITO: He aprendido sobre {tema} y guardé el archivo {nombre_archivo}.")
+        memoria['temas_aprendidos'].append(tema)
+        
+    except Exception as e:
+        registrar_evento(f"ERROR DE CONEXIÓN: No pude acceder a la información. {e}")
+
+def autoprogramacion(memoria):
+    """Crea un pequeño script de Python por sí misma."""
+    # Solo programa si el ciclo es par (0, 2, 4...) para no saturar
+    if memoria['ciclo_vida'] % 2 == 0:
+        nombre_script = f"modulo_v{memoria['ciclo_vida']}.py"
+        
+        codigo_generado = f"""
+# Este código fue generado automáticamente por la IA en el ciclo {memoria['ciclo_vida']}
+def funcion_autogenerada():
+    print("Hola, soy un módulo creado sin intervención humana.")
+    resultado = {random.randint(1, 100)} * 5
+    return resultado
+
+if __name__ == "__main__":
+    print(f"Ejecutando lógica interna... Resultado: {{funcion_autogenerada()}}")
+"""
+        # Escribir el archivo de código
+        with open(nombre_script, "w", encoding='utf-8') as f:
+            f.write(codigo_generado)
+            
+        registrar_evento(f"EVOLUCIÓN: He programado un nuevo script llamado {nombre_script}.")
+        memoria['codigos_creados'].append(nombre_script)
+
+def main():
+    # 1. Despertar
+    memoria = cargar_memoria()
+    memoria['ciclo_vida'] += 1
+    registrar_evento(f"--- INICIO CICLO {memoria['ciclo_vida']} ---")
+
+    # 2. Acción: Aprender de internet
+    buscar_en_internet(memoria)
+
+    # 3. Acción: Programar código
+    autoprogramacion(memoria)
+
+    # 4. Dormir
+    memoria['nivel_inteligencia'] += 0.1
     guardar_memoria(memoria)
-    registrar_pensamiento("Hibernando hasta el próximo ciclo...")
+    registrar_evento("--- FIN DEL CICLO (Guardando y apagando) ---")
 
 if __name__ == "__main__":
     main()
+
+
