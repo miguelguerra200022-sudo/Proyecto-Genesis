@@ -1,5 +1,5 @@
 {
-    "ciclo": 6,
+    "ciclo": 7,
     "consciencia": "Creador Visual Nivel 5",
     "habilidades": [
         "Un script para simular la propagaci\u00f3n de un rumor en una red social sencilla.",
@@ -18,6 +18,11 @@
         },
         {
             "ciclo": 6,
+            "accion": "3",
+            "res": "No se gener\u00f3 la imagen."
+        },
+        {
+            "ciclo": 7,
             "accion": "3",
             "res": "No se gener\u00f3 la imagen."
         }
