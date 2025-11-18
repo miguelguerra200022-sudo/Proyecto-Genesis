@@ -1,12 +1,8 @@
 {
-    "nivel": 1.05,
-    "edad_ciclos": 5,
-    "conocimientos": [],
-    "intereses": [
-        "python",
-        "inteligencia artificial",
-        "biolog\u00eda digital",
-        "criptograf\u00eda"
-    ],
-    "auto_codigo": ""
+    "ciclo_vida": 0,
+    "nivel_inteligencia": 1.0,
+    "temas_aprendidos": [],
+    "codigos_creados": []
 }
+
+
