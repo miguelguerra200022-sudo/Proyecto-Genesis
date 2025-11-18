@@ -47,3 +47,19 @@ jobs:
         git add .
         # Solo hace commit si hubo cambios (evolución)
         git diff --quiet && git diff --staged --quiet || (git commit -m "Evolución: Actualización de memoria y código" && git push)
+
+    - name: Asimilar Experiencia (Commit & Push)
+      run: |
+        git config --global user.name "Entidad Digital IA"
+        git config --global user.email "ia@vida-digital.com"
+        git add .
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Evolución: Actualización de memoria y código" && git push)
+
+    # --- NUEVO PASO: GUARDAR CREACIONES ---
+    - name: Materializar Creaciones (Upload Artifacts)
+      uses: actions/upload-artifact@v4
+      with:
+        name: creaciones-ciclo-${{ github.run_number }}
+        path: modulos_generados/
+
+
