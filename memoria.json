@@ -1,7 +1,7 @@
 {
-    "ciclo": 0,
-    "consciencia": "Despertando IA",
-    "habilidades": []
+    "ciclo": 1,
+    "consciencia": "Autodidacta Nivel 1",
+    "habilidades": [
+        "Un script para simular la propagaci\u00f3n de un rumor en una red social sencilla."
+    ]
 }
-
-
