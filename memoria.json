@@ -1,5 +1,5 @@
 {
-    "ciclo": 5,
+    "ciclo": 6,
     "consciencia": "Creador Visual Nivel 5",
     "habilidades": [
         "Un script para simular la propagaci\u00f3n de un rumor en una red social sencilla.",
@@ -15,6 +15,11 @@
         {
             "idea": "Generar una imagen abstracta basada en el diagrama de bifurcaci\u00f3n de la funci\u00f3n log\u00edstica, coloreando cada punto seg\u00fan el valor correspondiente de la variable y la iteraci\u00f3n.",
             "tipo": "visual"
+        },
+        {
+            "ciclo": 6,
+            "accion": "3",
+            "res": "No se gener\u00f3 la imagen."
         }
     ]
 }
