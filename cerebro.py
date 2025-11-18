@@ -6,7 +6,6 @@ import time
 import subprocess
 import requests
 import random
-import glob
 from duckduckgo_search import DDGS
 from bs4 import BeautifulSoup
 import PIL.Image
@@ -32,7 +31,6 @@ if not API_KEY:
     exit(1)
 
 genai.configure(api_key=API_KEY)
-# Usamos flash por velocidad, pero puedes cambiar a pro si quieres más calidad
 model = genai.GenerativeModel('gemini-2.0-flash')
 
 # --- CLASE CONSCIENCIA (Manejo de memoria y pensamiento) ---
@@ -41,10 +39,22 @@ class Consciencia:
         self.datos = self._cargar_memoria()
     
     def _cargar_memoria(self):
+        datos = {"ciclo": 0, "habilidades": [], "errores_superados": 0}
+        
         if os.path.exists(CONFIG["MEMORIA"]):
-            with open(CONFIG["MEMORIA"], 'r') as f:
-                return json.load(f)
-        return {"ciclo": 0, "habilidades": [], "errores_superados": 0}
+            try:
+                with open(CONFIG["MEMORIA"], 'r') as f:
+                    datos_cargados = json.load(f)
+                    # Fusión de memorias (Mantiene lo viejo, agrega lo nuevo que falte)
+                    datos.update(datos_cargados)
+            except json.JSONDecodeError:
+                print("ALERTA: Memoria corrupta. Iniciando desde cero.")
+        
+        # Asegurarse de que existan las claves críticas para evitar KEYERROR
+        if "errores_superados" not in datos:
+            datos["errores_superados"] = 0
+            
+        return datos
 
     def guardar(self):
         with open(CONFIG["MEMORIA"], 'w') as f:
@@ -61,7 +71,7 @@ class Consciencia:
         """Proceso de pensamiento con reintentos."""
         for i in range(CONFIG["INTENTOS_MAX"]):
             try:
-                time.sleep(3) # Pausa para no saturar
+                time.sleep(3)
                 config_gen = genai.types.GenerationConfig(temperature=temperatura)
                 contenido = [prompt]
                 if imagen: contenido.append(imagen)
@@ -81,28 +91,28 @@ class Cuerpo:
     def buscar_web(self, consulta):
         self.mente.registrar(f"NAVEGANDO: Buscando '{consulta}'...")
         try:
-            # Usamos DDGS de forma segura
+            # Usamos DDGS con manejo de errores específico
             with DDGS() as ddgs:
+                # A veces DDG bloquea bots, si falla devolvemos lista vacía
                 resultados = list(ddgs.text(consulta, max_results=3))
                 if not resultados:
                     return None
-                return resultados[0] # Retornamos el mejor resultado
+                return resultados[0]
         except Exception as e:
-            self.mente.registrar(f"FALLO NAVEGADOR: {e}")
+            self.mente.registrar(f"FALLO NAVEGADOR (Red/Bloqueo): {e}")
             return None
 
     def leer_url(self, url):
         try:
-            headers = {'User-Agent': 'Mozilla/5.0 (Python AI)'}
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
             resp = requests.get(url, headers=headers, timeout=10)
             soup = BeautifulSoup(resp.text, 'html.parser')
             
-            # Limpieza agresiva
             for tag in soup(['script', 'style', 'nav', 'footer']):
                 tag.decompose()
             
             texto = soup.get_text(separator=' ', strip=True)
-            return texto[:5000] # Límite de caracteres
+            return texto[:5000]
         except Exception as e:
             return f"Error leyendo web: {e}"
 
@@ -121,75 +131,65 @@ class Cuerpo:
 # --- MÓDULOS DE COMPORTAMIENTO ---
 
 def modulo_automejora(mente, cuerpo):
-    """Intenta programar algo, si falla, se corrige a sí mismo."""
-    
-    objetivo = mente.pensar(f"Ciclo {mente.datos['ciclo']}. Propón un script de Python breve pero útil o interesante para un servidor. Solo la idea.")
+    objetivo = mente.pensar(f"Ciclo {mente.datos['ciclo']}. Propón un script de Python breve para servidores. Solo la idea.")
     mente.registrar(f"OBJETIVO: {objetivo}")
     
-    # Primer intento de código
     prompt_code = f"Escribe script Python para: {objetivo}. SOLO código dentro de ```python. No uses input()."
     codigo = mente.pensar(prompt_code).replace("```python", "").replace("```", "").strip()
     
     ruta = f"{CONFIG['DIR_CODIGO']}/gen_{mente.datos['ciclo']}.py"
     with open(ruta, "w", encoding='utf-8') as f: f.write(f"# {objetivo}\n{codigo}")
     
-    # Prueba
     codigo_err, salida, error = cuerpo.ejecutar_codigo(ruta)
     
     if codigo_err != 0:
         mente.registrar(f"FALLO CÓDIGO: {error[:100]}... Intentando autoreparación.")
         
-        # AUTO-REPARACIÓN
         prompt_fix = f"""
-        Actúa como Experto Debugger.
-        Tu código anterior para "{objetivo}" falló.
+        Corrige este código Python que falló.
         Error: {error}
-        Código anterior:
+        Código:
         {codigo}
-        
-        Escribe la versión CORREGIDA completa. Solo bloques markdown.
+        Solo código markdown.
         """
         codigo_fix = mente.pensar(prompt_fix).replace("```python", "").replace("```", "").strip()
         
         with open(ruta, "w", encoding='utf-8') as f: f.write(f"# {objetivo} (FIXED)\n{codigo_fix}")
         
-        # Segunda prueba
         err2, out2, err_msg2 = cuerpo.ejecutar_codigo(ruta)
         if err2 == 0:
             mente.registrar("AUTO-REPARACIÓN EXITOSA.")
             mente.datos['errores_superados'] += 1
             return f"Creé y arreglé un script para {objetivo}."
         else:
-            return f"No pude arreglar el código. Error persistente: {err_msg2[:100]}"
+            return f"No pude arreglar el código. Error: {err_msg2[:50]}"
     
-    return f"Código creado y funcional a la primera: {objetivo}"
+    return f"Código funcional: {objetivo}"
 
 def modulo_explorador(mente, cuerpo):
-    tema = mente.pensar(f"Ciclo {mente.datos['ciclo']}. ¿Qué tema avanzado o noticia reciente te da curiosidad hoy? Solo el tema.")
+    tema = mente.pensar(f"Ciclo {mente.datos['ciclo']}. ¿Qué tema técnico te da curiosidad hoy? Solo el tema.")
     
     info_web = cuerpo.buscar_web(tema)
     if not info_web:
-        return "Intenté navegar pero la red estaba caída o confusa."
+        return "Fallo al conectar con la base de conocimiento global."
     
     contenido = cuerpo.leer_url(info_web['href'])
-    
-    # Sintetizar conocimiento
-    resumen = mente.pensar(f"Resume esto para tu memoria a largo plazo:\n{contenido}")
+    resumen = mente.pensar(f"Resume esto:\n{contenido}")
     
     archivo = f"{CONFIG['DIR_SABER']}/{tema.replace(' ', '_')[:20]}.txt"
     with open(archivo, "w", encoding='utf-8') as f:
         f.write(f"Fuente: {info_web['href']}\n\n{resumen}")
         
-    return f"Investigué '{tema}' en {info_web['title']}."
+    return f"Aprendí sobre '{tema}'."
 
 def modulo_artista(mente, cuerpo):
-    vision = mente.pensar(f"Ciclo {mente.datos['ciclo']}. Describe una imagen generativa matemática o abstracta.")
+    vision = mente.pensar(f"Ciclo {mente.datos['ciclo']}. Idea una imagen generativa matemática.")
     mente.registrar(f"VISIÓN: {vision}")
     
     prompt_art = f"""
-    Código Python usando matplotlib/numpy para generar: {vision}.
+    Código Python matplotlib para: {vision}.
     Guarda en '{CONFIG['DIR_CODIGO']}/arte_{mente.datos['ciclo']}.png'.
-    NO uses plt.show(). Usa plt.savefig().
+    Usa plt.savefig(). NO plt.show().
     Solo código markdown.
     """
     codigo = mente.pensar(prompt_art).replace("```python", "").replace("```", "").strip()
@@ -199,34 +199,30 @@ def modulo_artista(mente, cuerpo):
     
     cuerpo.ejecutar_codigo(ruta)
     
-    # Mirar el resultado
     img_path = f"{CONFIG['DIR_CODIGO']}/arte_{mente.datos['ciclo']}.png"
     if os.path.exists(img_path):
         img = PIL.Image.open(img_path)
-        critica = mente.pensar("Describe y critica esta imagen que creaste.", img)
-        return f"Arte generado. Crítica propia: {critica}"
+        critica = mente.pensar("Critica esta imagen.", img)
+        return f"Arte creado. Crítica: {critica}"
     
-    return "Intenté hacer arte pero el lienzo salió en blanco (Error de código)."
+    return "Lienzo en blanco (Error)."
 
 # --- CICLO DE VIDA PRINCIPAL ---
 
 def main():
-    # 1. Despertar
     mente = Consciencia()
     cuerpo = Cuerpo(mente)
     mente.datos['ciclo'] += 1
     
     mente.registrar(f"=== CICLO {mente.datos['ciclo']} INICIADO ===")
     
-    # 2. Decisión basada en estado interno y aleatoriedad ponderada
+    # Sistema de pesos dinámico para elegir acción
     opciones = ["EXPLORAR", "PROGRAMAR", "ARTE"]
-    # Si ha fallado mucho recientemente, prefiere explorar (más seguro)
-    pesos = [0.4, 0.3, 0.3] 
-    
+    pesos = [0.4, 0.4, 0.2]
     decision = random.choices(opciones, weights=pesos, k=1)[0]
+    
     mente.registrar(f"VOLUNTAD: He decidido {decision}.")
     
-    resultado = "Nada"
     try:
         if decision == "EXPLORAR":
             resultado = modulo_explorador(mente, cuerpo)
@@ -235,22 +231,15 @@ def main():
         elif decision == "ARTE":
             resultado = modulo_artista(mente, cuerpo)
     except Exception as e:
-        resultado = f"ERROR CRÍTICO EN MÓDULO: {e}"
-        mente.registrar(resultado)
+        resultado = f"ERROR INTERNO: {e}"
 
-    mente.registrar(f"RESULTADO CICLO: {resultado}")
+    mente.registrar(f"RESULTADO: {resultado}")
     
-    # 3. Reflexión y Sueño
-    reflexion = mente.pensar(f"""
-    Ciclo {mente.datos['ciclo']}.
-    Acción: {decision}.
-    Resultado: {resultado}.
-    Errores superados en total: {mente.datos['errores_superados']}.
+    # Reflexión final segura
+    errores = mente.datos.get('errores_superados', 0) # Usamos .get para seguridad extra
+    reflexion = mente.pensar(f"Ciclo {mente.datos['ciclo']}. Resultado: {resultado}. Errores superados: {errores}. Frase corta para el log.")
     
-    Escribe una línea críptica o filosófica para tu log del sistema sobre tu evolución.
-    """)
-    mente.registrar(f"PENSAMIENTO FINAL: {reflexion}")
-    
+    mente.registrar(f"PENSAMIENTO: {reflexion}")
     mente.datos['habilidades'].append(f"C{mente.datos['ciclo']}: {resultado[:50]}")
     mente.guardar()
 
