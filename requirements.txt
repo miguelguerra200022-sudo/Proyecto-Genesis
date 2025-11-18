@@ -1,1 +1,2 @@
-wikipedia 
+google-generativeai
+wikipedia
