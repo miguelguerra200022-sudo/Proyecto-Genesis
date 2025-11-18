@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J.A.R.V.I.S. Protocol</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body { background-color: #050505; color: #00ffcc; font-family: 'Courier New', Courier, monospace; }
+        .jarvis-border { border: 1px solid #00ffcc; box-shadow: 0 0 10px #00ffcc44; }
+        .message-user { border-left: 3px solid #0088ff; background: #001122; color: #cceeff; }
+        .message-ai { border-right: 3px solid #00ffcc; background: #002211; color: #ccffee; }
+        .typing::after { content: '▋'; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        #setup-modal { backdrop-filter: blur(5px); }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- HEADER -->
+    <header class="p-4 border-b border-gray-800 flex justify-between items-center bg-black bg-opacity-90 z-10">
+        <div class="flex items-center gap-2">
+            <div class="w-3 h-3 rounded-full bg-red-500 animate-pulse" id="status-light"></div>
+            <h1 class="text-xl font-bold tracking-widest">GENESIS <span class="text-xs align-top opacity-50">v7.0</span></h1>
+        </div>
+        <button onclick="borrarMemoria()" class="text-xs hover:text-red-400 transition">[PURGAR SISTEMA]</button>
+    </header>
+
+    <!-- CHAT AREA -->
+    <main id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
+        <div class="text-center opacity-50 mt-10">
+            <p>SISTEMA EN LÍNEA.</p>
+            <p class="text-xs">Esperando conexión neuronal...</p>
+        </div>
+    </main>
+
+    <!-- INPUT AREA -->
+    <footer class="p-4 border-t border-gray-800 bg-black">
+        <form id="chat-form" class="flex gap-2 max-w-4xl mx-auto">
+            <input type="text" id="user-input" 
+                class="flex-1 bg-gray-900 border border-gray-700 rounded p-3 focus:outline-none focus:border-cyan-400 text-white placeholder-gray-600 transition"
+                placeholder="Escriba un comando..." autocomplete="off">
+            <button type="submit" 
+                class="bg-cyan-900 hover:bg-cyan-700 text-cyan-100 px-6 rounded font-bold transition border border-cyan-500">
+                EJECUTAR
+            </button>
+        </form>
+    </footer>
+
+    <!-- SETUP MODAL (Pide la API Key la primera vez) -->
+    <div id="setup-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50 hidden">
+        <div class="bg-gray-900 p-6 rounded-lg border border-cyan-500 w-96 shadow-[0_0_50px_rgba(0,255,255,0.2)]">
+            <h2 class="text-xl mb-4 text-cyan-400 text-center">AUTENTICACIÓN REQUERIDA</h2>
+            <p class="text-xs text-gray-400 mb-4 text-center">Ingresa tu GEMINI API KEY para activar el núcleo.</p>
+            <input type="password" id="api-key-input" class="w-full bg-black border border-gray-600 p-2 rounded text-white mb-4 focus:border-cyan-500 outline-none" placeholder="AIzaSy...">
+            <button onclick="guardarKey()" class="w-full bg-cyan-800 hover:bg-cyan-600 text-white p-2 rounded font-bold transition">CONECTAR</button>
+            <p class="text-[10px] text-gray-600 mt-4 text-center">La clave se guarda localmente en tu navegador.</p>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const form = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const setupModal = document.getElementById('setup-modal');
+        
+        let apiKey = localStorage.getItem('GENESIS_API_KEY');
+        let historial = [];
+
+        // Inicialización
+        if (!apiKey) {
+            setupModal.classList.remove('hidden');
+        } else {
+            document.getElementById('status-light').classList.replace('bg-red-500', 'bg-green-500');
+            agregarMensaje("Sistema", "Conexión establecida. Soy Jarvis. ¿En qué puedo servirle?");
+        }
+
+        function guardarKey() {
+            const key = document.getElementById('api-key-input').value.trim();
+            if (key.startsWith('AIza')) {
+                localStorage.setItem('GENESIS_API_KEY', key);
+                apiKey = key;
+                setupModal.classList.add('hidden');
+                document.getElementById('status-light').classList.replace('bg-red-500', 'bg-green-500');
+                agregarMensaje("Sistema", "Clave aceptada. Protocolo de voz iniciado.");
+            } else {
+                alert("Clave inválida. Debe empezar por 'AIza'.");
+            }
+        }
+
+        function borrarMemoria() {
+            if(confirm("¿Desconectar núcleo?")) {
+                localStorage.removeItem('GENESIS_API_KEY');
+                location.reload();
+            }
+        }
+
+        function agregarMensaje(rol, texto) {
+            const div = document.createElement('div');
+            div.className = `p-4 rounded-lg max-w-[85%] ${rol === 'Usuario' ? 'ml-auto message-user' : 'mr-auto message-ai'}`;
+            
+            const nombre = document.createElement('div');
+            nombre.className = "text-[10px] font-bold mb-1 opacity-70 uppercase tracking-wider";
+            nombre.textContent = rol;
+            
+            const contenido = document.createElement('div');
+            // Usamos marked para parsear Markdown (código, negritas)
+            contenido.innerHTML = marked.parse(texto);
+            
+            div.appendChild(nombre);
+            div.appendChild(contenido);
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function pensar(prompt) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            
+            const context = `Eres Jarvis, una IA avanzada creada por el usuario.
+            Tu interfaz es cian y negra, estilo cyberpunk.
+            Responde de manera concisa, eficiente y leal.
+            Si te piden código, úsalo en bloques markdown.`;
+
+            const payload = {
+                contents: [
+                    { role: "user", parts: [{ text: context + "\n\nHistorial:\n" + JSON.stringify(historial.slice(-6)) }] },
+                    { role: "user", parts: [{ text: prompt }] }
+                ]
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                
+                if (data.error) throw new Error(data.error.message);
+                return data.candidates[0].content.parts[0].text;
+            } catch (error) {
+                return `ERROR DE SISTEMA: ${error.message}`;
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const texto = userInput.value.trim();
+            if (!texto) return;
+
+            userInput.value = '';
+            agregarMensaje("Usuario", texto);
+            historial.push({role: "user", text: texto});
+
+            // Indicador de pensando
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = "p-4 message-ai mr-auto opacity-50 typing";
+            loadingDiv.textContent = "Procesando...";
+            loadingDiv.id = "loading-msg";
+            chatContainer.appendChild(loadingDiv);
+
+            const respuesta = await pensar(texto);
+            
+            document.getElementById("loading-msg").remove();
+            agregarMensaje("Jarvis", respuesta);
+            historial.push({role: "model", text: respuesta});
+        });
+    </script>
+</body>
+</html>
+
