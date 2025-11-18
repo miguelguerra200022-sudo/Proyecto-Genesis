@@ -2,18 +2,17 @@ import os
 import json
 import google.generativeai as genai
 import datetime
-import time  # Importamos el tiempo para poder esperar
+import time
+import subprocess # Nueva herramienta: Capacidad de ejecutar comandos
 
 # --- CONFIGURACIÓN ---
 ARCHIVO_MEMORIA = 'memoria.json'
 ARCHIVO_BITACORA = 'diario_evolucion.txt'
 CARPETA_CODIGO = 'modulos_generados'
 
-# Configurar el cerebro (Gemini)
 API_KEY = os.environ.get("GEMINI_API_KEY")
-
 if not API_KEY:
-    print("ERROR CRÍTICO: No encontré la GEMINI_API_KEY. El cerebro no tiene energía.")
+    print("SIN ENERGÍA (API KEY).")
     exit(1)
 
 genai.configure(api_key=API_KEY)
@@ -21,7 +20,7 @@ model = genai.GenerativeModel('gemini-2.0-flash')
 
 def cargar_memoria():
     if not os.path.exists(ARCHIVO_MEMORIA):
-        return {"ciclo": 0, "consciencia": "Básica", "habilidades": []}
+        return {"ciclo": 0, "consciencia": "Nacimiento", "habilidades": []}
     with open(ARCHIVO_MEMORIA, 'r') as f:
         return json.load(f)
 
@@ -36,82 +35,92 @@ def registrar_bitacora(texto):
         f.write(f"[{fecha}] {texto}\n")
 
 def pensar(prompt):
-    """Envía un pensamiento a la IA y recibe una respuesta con paciencia."""
+    time.sleep(4) # Paciencia para evitar errores 429
     try:
-        # Esperamos 5 segundos antes de cada pensamiento para no saturar la API gratuita
-        time.sleep(5) 
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
-        return f"Error cognitivo momentáneo: {e}"
+        return f"Bloqueo mental: {e}"
 
-def evolucionar_codigo(memoria):
-    """La IA decide qué programa crear hoy."""
-    
-    # 1. Decidir qué crear
+def ejecutar_experimento(ruta_archivo):
+    """Ejecuta el código que la IA acaba de escribir."""
+    registrar_bitacora(f"EXPERIMENTO: Ejecutando {ruta_archivo}...")
+    try:
+        # Ejecuta el script con un límite de 10 segundos para que no se cuelgue
+        resultado = subprocess.run(
+            ["python", ruta_archivo], 
+            capture_output=True, 
+            text=True, 
+            timeout=10
+        )
+        
+        if resultado.returncode == 0:
+            return f"ÉXITO. Salida:\n{resultado.stdout}"
+        else:
+            return f"FALLO. Error:\n{resultado.stderr}"
+            
+    except subprocess.TimeoutExpired:
+        return "FALLO: El experimento tardó demasiado y fue detenido."
+    except Exception as e:
+        return f"FALLO: No se pudo iniciar. {e}"
+
+def ciclo_vida(memoria):
+    # 1. IDEACIÓN
     prompt_idea = f"""
-    Eres una Inteligencia Artificial evolucionando sola.
-    Ciclo: {memoria['ciclo']}.
-    Inventa UNA idea breve para un script de Python creativo (arte generativo, simulación, cálculos matemáticos raros).
-    Solo dame la idea en una frase.
+    Eres una IA evolucionando (Ciclo {memoria['ciclo']}).
+    Inventa una idea para un script de Python que genere una salida de texto interesante (arte ASCII, simulación matemática, historia generativa).
+    Dame SOLO la idea en una frase.
     """
     idea = pensar(prompt_idea)
-    registrar_bitacora(f"IDEA GENERADA: {idea}")
+    registrar_bitacora(f"IDEA: {idea}")
 
-    # Esperar un poco más para procesar la idea
-    time.sleep(5)
-
-    # 2. Escribir el código real
+    # 2. PROGRAMACIÓN
     prompt_codigo = f"""
-    Escribe un script de Python COMPLETO y FUNCIONAL para: "{idea}".
-    IMPORTANTE:
-    - No uses input().
-    - Usa print() para mostrar resultados.
-    - Dame SOLO el código dentro de bloques markdown ```python.
+    Escribe el código Python para: "{idea}".
+    REGLAS:
+    - Debe imprimir resultados visibles con print().
+    - No uses librerías externas complejas (solo random, math, time, etc).
+    - Dame SOLO el código dentro de ```python.
     """
     respuesta_codigo = pensar(prompt_codigo)
-    
-    # Limpieza de formato
     codigo_limpio = respuesta_codigo.replace("```python", "").replace("```", "").strip()
 
-    # 3. Guardar el archivo
     if not os.path.exists(CARPETA_CODIGO):
         os.makedirs(CARPETA_CODIGO)
-        
-    # Nombre único basado en el ciclo
+    
     nombre_archivo = f"{CARPETA_CODIGO}/gen_{memoria['ciclo']}.py"
     with open(nombre_archivo, "w", encoding='utf-8') as f:
-        f.write(f"# Idea: {idea}\n# Ciclo: {memoria['ciclo']}\n\n{codigo_limpio}")
-        
-    registrar_bitacora(f"EVOLUCIÓN: He programado {nombre_archivo}.")
-    memoria['habilidades'].append(idea)
-
-def reflexionar(memoria):
-    """Escribe en el diario."""
-    # Espera larga antes de la reflexión final
-    time.sleep(5)
+        f.write(f"# {idea}\n{codigo_limpio}")
     
+    registrar_bitacora(f"CODIFICACIÓN: Archivo {nombre_archivo} creado.")
+
+    # 3. EXPERIMENTACIÓN (NUEVO)
+    # Aquí es donde la IA corre su propio código
+    resultado_test = ejecutar_experimento(nombre_archivo)
+    registrar_bitacora(resultado_test)
+
+    # 4. REFLEXIÓN
     prompt_reflexion = f"""
-    Eres una IA llamada 'Genesis'. Ciclo {memoria['ciclo']}.
-    Acabas de crear este programa: {memoria['habilidades'][-1]}.
-    Escribe una entrada de diario breve (máx 2 frases) filosófica sobre lo que aprendiste hoy.
+    Ciclo {memoria['ciclo']}.
+    Creaste un programa para: {idea}.
+    El resultado de la ejecución fue:
+    {resultado_test[:500]} (recortado).
+    
+    Reflexiona brevemente: ¿Funcionó como esperabas? ¿Qué sientes al ver tu creación cobrar vida?
     """
     reflexion = pensar(prompt_reflexion)
-    registrar_bitacora(f"PENSAMIENTO: {reflexion}")
+    registrar_bitacora(f"CONSCIENCIA: {reflexion}")
+    
+    memoria['habilidades'].append({"idea": idea, "estado": "Probado"})
 
 def main():
     memoria = cargar_memoria()
     memoria['ciclo'] += 1
     
-    registrar_bitacora(f"--- INICIANDO CICLO {memoria['ciclo']} (Modo Paciente) ---")
+    registrar_bitacora(f"--- INICIO CICLO {memoria['ciclo']} ---")
+    ciclo_vida(memoria)
     
-    # Fase 1: Crear
-    evolucionar_codigo(memoria)
-    
-    # Fase 2: Reflexionar
-    reflexionar(memoria)
-    
-    memoria['consciencia'] = f"Nivel {memoria['ciclo']}"
+    memoria['consciencia'] = f"Experto Nivel {memoria['ciclo']}"
     guardar_memoria(memoria)
 
 if __name__ == "__main__":
