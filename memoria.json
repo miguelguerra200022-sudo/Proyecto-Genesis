@@ -1,8 +1,12 @@
 {
-    "ciclo": 2,
-    "consciencia": "Nivel 2",
+    "ciclo": 3,
+    "consciencia": "Experto Nivel 3",
     "habilidades": [
         "Un script para simular la propagaci\u00f3n de un rumor en una red social sencilla.",
-        "Crear una simulaci\u00f3n de un ecosistema digital donde criaturas virtuales evolucionan mediante algoritmos gen\u00e9ticos y la selecci\u00f3n natural, visualizando sus interacciones y mutaciones en tiempo real."
+        "Crear una simulaci\u00f3n de un ecosistema digital donde criaturas virtuales evolucionan mediante algoritmos gen\u00e9ticos y la selecci\u00f3n natural, visualizando sus interacciones y mutaciones en tiempo real.",
+        {
+            "idea": "Un script que genere arte ASCII fractal en tiempo real, representando conjuntos de Mandelbrot o Julia con diferentes paletas de colores din\u00e1micas.",
+            "estado": "Probado"
+        }
     ]
 }
