@@ -1,5 +1,7 @@
 google-generativeai
-wikipedia
+duckduckgo-search
+beautifulsoup4
+requests
 matplotlib
 numpy
 Pillow
