@@ -2,3 +2,4 @@ google-generativeai
 wikipedia
 matplotlib
 numpy
+Pillow
