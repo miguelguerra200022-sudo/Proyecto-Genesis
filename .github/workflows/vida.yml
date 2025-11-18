@@ -4,7 +4,7 @@ name: Vida Digital - Ciclo Evolutivo
 # Se ejecuta automáticamente cada 6 horas O cuando tú lo actives manualmente.
 on:
   schedule:
-    - cron: '0 */6 * * *' # Ejecutar cada 6 horas
+    - cron: '0 */1 * * *' # Ejecutar cada hora
   workflow_dispatch: # Botón para ejecución manual
 
 permissions:
