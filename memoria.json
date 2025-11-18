@@ -1,11 +1,12 @@
 {
-    "nivel": 1.02,
-    "edad_ciclos": 2,
+    "nivel": 1.03,
+    "edad_ciclos": 3,
     "conocimientos": [],
     "intereses": [
         "python",
         "inteligencia artificial",
-        "biolog\u00eda digital"
+        "biolog\u00eda digital",
+        "criptograf\u00eda"
     ],
     "auto_codigo": ""
 }
