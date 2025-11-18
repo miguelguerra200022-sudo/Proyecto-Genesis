@@ -1,12 +1,16 @@
 {
-    "ciclo": 3,
-    "consciencia": "Experto Nivel 3",
+    "ciclo": 4,
+    "consciencia": "Creador Visual Nivel 4",
     "habilidades": [
         "Un script para simular la propagaci\u00f3n de un rumor en una red social sencilla.",
         "Crear una simulaci\u00f3n de un ecosistema digital donde criaturas virtuales evolucionan mediante algoritmos gen\u00e9ticos y la selecci\u00f3n natural, visualizando sus interacciones y mutaciones en tiempo real.",
         {
             "idea": "Un script que genere arte ASCII fractal en tiempo real, representando conjuntos de Mandelbrot o Julia con diferentes paletas de colores din\u00e1micas.",
             "estado": "Probado"
+        },
+        {
+            "idea": "Un script que genere una imagen abstracta basada en la simulaci\u00f3n de gotas de agua cayendo y expandi\u00e9ndose en una superficie, con colores y opacidades aleatorias que se superponen para crear un patr\u00f3n complejo.",
+            "tipo": "visual"
         }
     ]
 }
