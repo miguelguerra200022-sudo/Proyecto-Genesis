@@ -1,0 +1,41 @@
+name: Vida Digital Autónoma
+
+on:
+  schedule:
+    # Se ejecuta cada 12 horas (para no gastar la cuota gratis rápido)
+    - cron: '0 */12 * * *'
+  workflow_dispatch: # Permite ejecutarlo manualmente también
+
+permissions:
+  contents: write
+
+jobs:
+  vivir:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Despertar (Checkout repo)
+      uses: actions/checkout@v4
+      
+    - name: Instalar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Instalar dependencias
+      run: |
+        pip install google-generativeai
+        
+    - name: Ejecutar Ciclo de Vida
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: python main.py
+      
+    - name: Guardar Recuerdos y Evolución
+      run: |
+        git config --global user.name 'Vida Digital IA'
+        git config --global user.email 'ia@vida.digital'
+        git add.
+        git diff --quiet && git diff --staged --quiet |
+
+| (git commit -m "Ciclo de vida completado: Actualización automática" && git push)
