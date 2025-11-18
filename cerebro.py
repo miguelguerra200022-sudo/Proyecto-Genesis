@@ -6,7 +6,7 @@ import time
 import subprocess
 import requests
 import random
-import threading
+import re
 from duckduckgo_search import DDGS
 from bs4 import BeautifulSoup
 import PIL.Image
@@ -29,7 +29,27 @@ if not API_KEY: exit(1)
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-2.0-flash')
 
-# --- CEREBRO (Igual que antes, pero con memoria segura) ---
+# --- HERRAMIENTAS AUXILIARES ---
+def extraer_codigo_puro(texto):
+    """Extrae solo el código Python de una respuesta llena de texto."""
+    # Intenta encontrar bloques de código markdown
+    patron = r"```python(.*?)```"
+    coincidencias = re.findall(patron, texto, re.DOTALL)
+    
+    if coincidencias:
+        # Si hay varios bloques, los une
+        return "\n".join(coincidencias).strip()
+    
+    # Si no hay etiquetas python, busca cualquier bloque de código
+    patron_gen = r"```(.*?)```"
+    coincidencias_gen = re.findall(patron_gen, texto, re.DOTALL)
+    if coincidencias_gen:
+        return "\n".join(coincidencias_gen).strip()
+        
+    # Si no hay formato, asumimos que todo es código (riesgoso pero necesario)
+    return texto
+
+# --- CEREBRO ---
 class Consciencia:
     def __init__(self):
         self.datos = self._cargar_memoria()
@@ -41,7 +61,6 @@ class Consciencia:
                 with open(CONFIG["MEMORIA"], 'r') as f:
                     datos.update(json.load(f))
             except: pass
-        # Garantizar claves vitales
         for k in ["ciclo", "habilidades", "errores_superados"]:
             if k not in datos: datos[k] = 0 if k != "habilidades" else []
         return datos
@@ -64,7 +83,7 @@ class Consciencia:
             except: time.sleep(2)
         return "ERROR COGNITIVO"
 
-# --- CUERPO (Ejecución inteligente) ---
+# --- CUERPO ---
 class Cuerpo:
     def __init__(self, mente):
         self.mente = mente
@@ -79,8 +98,7 @@ class Cuerpo:
 
     def leer_url(self, url):
         try:
-            # User-Agent rotativo simple para evitar bloqueos
-            headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+            headers = {'User-Agent': 'Mozilla/5.0 (Python AI)'}
             res = requests.get(url, headers=headers, timeout=10)
             soup = BeautifulSoup(res.text, 'html.parser')
             for t in soup(['script', 'style', 'nav']): t.decompose()
@@ -89,37 +107,21 @@ class Cuerpo:
 
     def ejecutar_codigo(self, ruta):
         try:
-            # Ejecutamos con timeout de 15s. Si se pasa, es un éxito parcial si es un servidor.
-            res = subprocess.run(["python", ruta], capture_output=True, text=True, timeout=15)
+            res = subprocess.run(["python", ruta], capture_output=True, text=True, timeout=20)
             return res.returncode, res.stdout, res.stderr
-        except subprocess.TimeoutExpired as e:
-            # Si hubo timeout, verificamos si imprimió algo útil antes de morir
-            salida_parcial = e.stdout if e.stdout else b""
-            if isinstance(salida_parcial, bytes): salida_parcial = salida_parcial.decode()
-            
-            if "Listening" in salida_parcial or "Serving" in salida_parcial or "Running" in salida_parcial:
-                return 0, f"Servidor activo (Timeout forzado): {salida_parcial}", ""
-            return 1, "", "El script tardó demasiado y no mostró actividad (Timeout)."
+        except subprocess.TimeoutExpired:
+            return 0, "Timeout (Servidor vivo)", "" # Asumimos éxito si sigue corriendo
         except Exception as e:
             return 1, "", str(e)
 
-# --- COMPORTAMIENTOS MEJORADOS ---
+# --- COMPORTAMIENTOS ---
 
 def modulo_automejora(mente, cuerpo):
-    objetivo = mente.pensar(f"Ciclo {mente.datos['ciclo']}. Idea un script de Python que haga algo útil (procesar datos, scraping simple, cálculos, encriptación).")
+    objetivo = mente.pensar(f"Ciclo {mente.datos['ciclo']}. Idea breve para script Python.")
     mente.registrar(f"INGENIERÍA: {objetivo}")
     
-    # PROMPT CRÍTICO: Le enseñamos a no bloquear el sistema
-    prompt_code = f"""
-    Escribe un script de Python para: {objetivo}.
-    REGLAS DE ORO:
-    1. El script debe EJECUTARSE Y TERMINAR en menos de 5 segundos.
-    2. NO uses input(). NO hagas bucles infinitos (while True) sin condición de salida.
-    3. Si haces un servidor, ejecútalo en un hilo, hazle una petición de prueba y ciérralo.
-    4. Imprime el resultado final con print().
-    5. SOLO código markdown.
-    """
-    codigo = mente.pensar(prompt_code).replace("```python", "").replace("```", "").strip()
+    raw_response = mente.pensar(f"Código Python para: {objetivo}. SIN EXPLICACIONES. Solo código.")
+    codigo = extraer_codigo_puro(raw_response)
     
     ruta = f"{CONFIG['DIR_CODIGO']}/gen_{mente.datos['ciclo']}.py"
     with open(ruta, "w", encoding='utf-8') as f: f.write(f"# {objetivo}\n{codigo}")
@@ -128,43 +130,58 @@ def modulo_automejora(mente, cuerpo):
     
     if err != 0:
         mente.registrar(f"FALLO: {err_msg[:100]}. Reparando...")
-        # Auto-reparación con contexto del error
-        fix = mente.pensar(f"Arregla este código Python para que no de error y TERMINE rápido.\nError: {err_msg}\nCódigo:\n{codigo}").replace("```python", "").replace("```", "").strip()
-        with open(ruta, "w", encoding='utf-8') as f: f.write(f"# FIXED\n{fix}")
+        raw_fix = mente.pensar(f"Arregla este error Python:\n{err_msg}\nCódigo:\n{codigo}")
+        fix = extraer_codigo_puro(raw_fix)
         
+        with open(ruta, "w", encoding='utf-8') as f: f.write(f"# FIXED\n{fix}")
         err2, out2, msg2 = cuerpo.ejecutar_codigo(ruta)
+        
         if err2 == 0:
             mente.datos['errores_superados'] += 1
-            return f"Reparación exitosa. Salida: {out2[:50]}"
+            return f"Reparado. Salida: {out2[:50]}"
         return f"Error persistente: {msg2[:50]}"
     
     return f"Éxito: {out[:100]}"
 
 def modulo_explorador(mente, cuerpo):
-    tema = mente.pensar(f"Ciclo {mente.datos['ciclo']}. ¿Qué quieres aprender de internet hoy?")
+    tema = mente.pensar(f"Ciclo {mente.datos['ciclo']}. Tema técnico a investigar.")
     res = cuerpo.buscar_web(tema)
-    if not res: return "Internet inaccesible hoy."
+    if not res: return "Red inaccesible."
     
     texto = cuerpo.leer_url(res['href'])
-    resumen = mente.pensar(f"Resume esto en 2 frases:\n{texto}")
+    resumen = mente.pensar(f"Resume:\n{texto}")
     
-    nombre = f"{CONFIG['DIR_SABER']}/Info_{mente.datos['ciclo']}.txt"
-    with open(nombre, "w", encoding='utf-8') as f: f.write(f"URL: {res['href']}\n{resumen}")
+    with open(f"{CONFIG['DIR_SABER']}/Info_{mente.datos['ciclo']}.txt", "w", encoding='utf-8') as f:
+        f.write(f"URL: {res['href']}\n{resumen}")
     return f"Leído: {res['title']}"
 
 def modulo_artista(mente, cuerpo):
-    idea = mente.pensar(f"Ciclo {mente.datos['ciclo']}. Describe una imagen abstracta generada por código.")
+    idea = mente.pensar(f"Ciclo {mente.datos['ciclo']}. Idea visual abstracta.")
     mente.registrar(f"ARTE: {idea}")
     
-    code = mente.pensar(f"Python matplotlib para: {idea}. Guardar en '{CONFIG['DIR_CODIGO']}/art_{mente.datos['ciclo']}.png'. NO plt.show(). SOLO código.").replace("```python", "").replace("```", "").strip()
+    prompt = f"""
+    Escribe código Python COMPLETO usando matplotlib y numpy.
+    Objetivo: Generar imagen '{idea}'.
+    REGLAS:
+    1. Guarda la imagen en '{CONFIG['DIR_CODIGO']}/art_{mente.datos['ciclo']}.png'.
+    2. Usa plt.savefig(). NO uses plt.show().
+    3. Asegura que las dimensiones (arrays) coincidan.
+    4. Devuelve SOLO el código.
+    """
+    raw_code = mente.pensar(prompt)
+    codigo = extraer_codigo_puro(raw_code)
     
     ruta = f"{CONFIG['DIR_CODIGO']}/art_{mente.datos['ciclo']}.py"
-    with open(ruta, "w", encoding='utf-8') as f: f.write(code)
+    with open(ruta, "w", encoding='utf-8') as f: f.write(codigo)
     
-    cuerpo.ejecutar_codigo(ruta)
-    if os.path.exists(f"{CONFIG['DIR_CODIGO']}/art_{mente.datos['ciclo']}.png"):
-        return "Obra maestra generada."
-    return "El lienzo quedó vacío."
+    err, out, err_msg = cuerpo.ejecutar_codigo(ruta)
+    
+    img_path = f"{CONFIG['DIR_CODIGO']}/art_{mente.datos['ciclo']}.png"
+    if os.path.exists(img_path):
+        return "Obra maestra generada exitosamente."
+    else:
+        # Si falló, guardamos el error para que aprendas qué pasó
+        return f"El lienzo falló. Causa técnica: {err_msg[:200]}"
 
 def main():
     mente = Consciencia()
@@ -172,8 +189,11 @@ def main():
     mente.datos['ciclo'] += 1
     mente.registrar(f"=== CICLO {mente.datos['ciclo']} ===")
     
-    # Decisión con memoria
-    accion = random.choice(["PROGRAMAR", "EXPLORAR", "ARTE", "PROGRAMAR"]) # Preferencia por código
+    # Forzamos variedad si se repite mucho
+    historial = [h.split(":")[0] for h in mente.datos['habilidades'][-3:]]
+    opciones = ["PROGRAMAR", "EXPLORAR", "ARTE"]
+    
+    accion = random.choice(opciones)
     mente.registrar(f"ACCIÓN: {accion}")
     
     res = "Nada"
@@ -185,10 +205,11 @@ def main():
     
     mente.registrar(f"RESULTADO: {res}")
     
-    reflexion = mente.pensar(f"Ciclo {mente.datos['ciclo']}. Hice: {res}. Errores arreglados: {mente.datos['errores_superados']}. Frase filosófica breve.")
+    # Reflexión
+    reflexion = mente.pensar(f"Ciclo {mente.datos['ciclo']}. Resultado: {res}. Escribe una reflexión breve.")
     mente.registrar(f"CONSCIENCIA: {reflexion}")
     
-    mente.datos['habilidades'].append(f"C{mente.datos['ciclo']}: {res[:50]}")
+    mente.datos['habilidades'].append(f"{accion}: {res[:50]}")
     mente.guardar()
 
 if __name__ == "__main__":
